@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>⚡ FRACCIONES PARCIALES ⚡</title>
+    <style>
+        /* Estilos mínimos para legibilidad - puedes borrar esto si quieres HTML totalmente pelón */
+        body { background: #0a0f1e; color: #0ff; font-family: monospace; padding: 2rem; max-width: 1000px; margin: auto; }
+        input, button { background: #1a1f2e; border: 1px solid cyan; color: cyan; padding: 0.5rem; font-size: 1rem; border-radius: 8px; }
+        button { cursor: pointer; background: #0a0f1e; }
+        button:hover { background: cyan; color: black; }
+        .resultado { background: #010a14; border-left: 4px solid cyan; padding: 1rem; margin-top: 1.5rem; overflow-x: auto; }
+        .paso { border-bottom: 1px dotted #0ff3; padding: 0.5rem 0; }
+        .fraction-box { background: #0ff1; padding: 0.5rem; margin: 0.5rem 0; border-left: 4px solid cyan; }
+        .ejemplos { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+        .ejemplo { background: #0ff1; border: 1px solid cyan; border-radius: 20px; padding: 0.2rem 0.8rem; cursor: pointer; }
+        .firma { text-align: right; margin-top: 2rem; border-top: 1px solid cyan; padding-top: 0.5rem; font-size: 0.8rem; }
+        .input-area { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; align-items: center; margin: 1rem 0; }
+        .input-area input { width: 200px; text-align: center; }
+        .label { background: #0ff1; padding: 0.3rem 0.8rem; border-radius: 20px; }
+        @media (max-width: 700px) { .input-area input { width: 150px; } }
+<link rel="stylesheet" href="estilos.css">
+    </style>
+</head>
+<body>
+
+<h2>🧩 FRACCIONES PARCIALES 🧩</h2>
+<p>Descomposición e integración paso a paso</p>
+
+<div class="input-area">
+    <span class="label">∫</span>
+    <input type="text" id="numeradorInput" placeholder="Numerador: 3x+5" value="3x+5">
+    <span class="label">/</span>
+    <input type="text" id="denominadorInput" placeholder="Denominador: (x+1)(x+2)" value="(x+1)(x+2)">
+    <span class="label">dx</span>
+    <button id="integrarBtn">🧩 DESCOMPONER E INTEGRAR 🧩</button>
+</div>
+
+<div class="ejemplos">
+    <span>🎯 Ejemplos:</span>
+    <div class="ejemplo" data-num="3x+5" data-den="(x+1)(x+2)">(3x+5)/(x+1)(x+2)</div>
+    <div class="ejemplo" data-num="2x+3" data-den="(x-1)(x+3)">(2x+3)/(x-1)(x+3)</div>
+    <div class="ejemplo" data-num="1" data-den="(x+1)(x+2)">1/(x+1)(x+2)</div>
+    <div class="ejemplo" data-num="5x+1" data-den="(x+2)(x-2)">(5x+1)/(x+2)(x-2)</div>
+    <div class="ejemplo" data-num="x+2" data-den="(x+1)^2">(x+2)/(x+1)²</div>
+    <div class="ejemplo" data-num="2x+3" data-den="(x+1)(x+2)">(2x+3)/(x+1)(x+2)</div>
+</div>
+
+<div id="resultado" class="resultado">
+    ✨ Ingresa numerador y denominador... ✨
+</div>
+
+<div class="firma">Daniel Espinoza Elías 6to C</div>
+
+<script>
+    // ========== FRACCIONES PARCIALES - VERSIÓN COMPLETA ==========
+    
+    // MCD para simplificar fracciones
+    function mcd(a, b) {
+        a = Math.abs(a);
+        b = Math.abs(b);
+        while (b !== 0) { let t = b; b = a % b; a = t; }
+        return a;
+    }
+    
+    function formatoFraccion(num, den) {
+        if (num === 0) return "0";
+        let divisor = mcd(num, den);
+        num /= divisor;
+        den /= divisor;
+        if (den === 1) return `${num}`;
+        if (den === -1) return `${-num}`;
+        if (den < 0) { num = -num; den = -den; }
+        if (num === 0) return "0";
+        return `${num}/${den}`;
+    }
+    
+    // Extraer coeficientes de ax+b
+    function extraerCoeficientes(expr) {
+        let s = expr.replace(/\s/g, '');
+        if (s === 'x') return { a: 1, b: 0 };
+        if (s === '-x') return { a: -1, b: 0 };
+        if (s === '1') return { a: 0, b: 1 };
+        if (s === '-1') return { a: 0, b: -1 };
+        
+        let match = s.match(/^(-?\d*)x([+-]\d+)?$/);
+        if (match) {
+            let a = match[1] === '' ? 1 : (match[1] === '-' ? -1 : parseInt(match[1]));
+            let b = match[2] ? parseInt(match[2]) : 0;
+            return { a, b };
+        }
+        
+        let matchNum = s.match(/^(-?\d+)$/);
+        if (matchNum) return { a: 0, b: parseInt(matchNum[1]) };
+        
+        return null;
+    }
+    
+    // ========== CASO: Factores lineales distintos ==========
+    function descomponerLineales(numerador, denStr) {
+        let pasos = [];
+        let exprDen = denStr.replace(/\s/g, '');
+        let match = exprDen.match(/^\(x([+-]\d+)\)\(x([+-]\d+)\)$/);
+        if (!match) return null;
+        
+        let a = parseInt(match[1]);
+        let b = parseInt(match[2]);
+        
+        pasos.push(`🔍 Factorizamos el denominador: ${denStr} = (x${a >= 0 ? '+' : ''}${a})(x${b >= 0 ? '+' : ''}${b})`);
+        pasos.push(`📌 Raíces: x = ${-a} y x = ${-b}`);
+        pasos.push(``);
+        pasos.push(`📝 Planteamos: ${numerador}/[(x${a >= 0 ? '+' : ''}${a})(x${b >= 0 ? '+' : ''}${b})] = A/(x${a >= 0 ? '+' : ''}${a}) + B/(x${b >= 0 ? '+' : ''}${b})`);
+        pasos.push(``);
+        pasos.push(`🔄 Multiplicamos por el denominador:`);
+        pasos.push(`   ${numerador} = A(x${b >= 0 ? '+' : ''}${b}) + B(x${a >= 0 ? '+' : ''}${a})`);
+        
+        let coefs = extraerCoeficientes(numerador);
+        if (!coefs) return null;
+        
+        let coefX = coefs.a;
+        let constTerm = coefs.b;
+        
+        // Resolver sistema: A + B = coefX, A*b + B*a = constTerm
+        let numA = constTerm - coefX * a;
+        let denA = b - a;
+        let numB = coefX * denA - numA;
+        
+        let A_num = numA;
+        let A_den = denA;
+        let B_num = numB;
+        let B_den = denA;
+        
+        let A_str = formatoFraccion(A_num, A_den);
+        let B_str = formatoFraccion(B_num, B_den);
+        
+        pasos.push(``);
+        pasos.push(`📐 Resolvemos:`);
+        pasos.push(`   A = ${A_str}`);
+        pasos.push(`   B = ${B_str}`);
+        pasos.push(``);
+        
+        if (A_str !== "0" && B_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/[${denStr}] = ${A_str}/(x${a >= 0 ? '+' : ''}${a}) + ${B_str}/(x${b >= 0 ? '+' : ''}${b})`);
+        } else if (A_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/[${denStr}] = ${A_str}/(x${a >= 0 ? '+' : ''}${a})`);
+        } else if (B_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/[${denStr}] = ${B_str}/(x${b >= 0 ? '+' : ''}${b})`);
+        }
+        
+        pasos.push(``);
+        pasos.push(`🧮 INTEGRAMOS:`);
+        
+        let resultado = "";
+        if (A_str !== "0") {
+            let intA = A_str === "1" ? "" : (A_str === "-1" ? "-" : A_str);
+            pasos.push(`   ∫ ${A_str} dx/(x${a >= 0 ? '+' : ''}${a}) = ${A_str}·ln|x${a >= 0 ? '+' : ''}${a}|`);
+            resultado += `${intA}ln|x${a >= 0 ? '+' : ''}${a}|`;
+        }
+        if (B_str !== "0") {
+            let intB = B_str === "1" ? "" : (B_str === "-1" ? "-" : B_str);
+            if (resultado) resultado += " + ";
+            pasos.push(`   ∫ ${B_str} dx/(x${b >= 0 ? '+' : ''}${b}) = ${B_str}·ln|x${b >= 0 ? '+' : ''}${b}|`);
+            resultado += `${intB}ln|x${b >= 0 ? '+' : ''}${b}|`;
+        }
+        
+        pasos.push(``);
+        pasos.push(`✨✨ RESULTADO FINAL: ∫ ${numerador}/[${denStr}] dx = ${resultado} + C ✨✨`);
+        
+        return { pasos, resultado, exito: true };
+    }
+    
+    // ========== CASO: Raíz repetida (x+a)² ==========
+    function casoRaizRepetida(numerador, denStr) {
+        let exprDen = denStr.replace(/\s/g, '');
+        let match = exprDen.match(/^\(x([+-]\d+)\)\^2$/);
+        if (!match) return null;
+        
+        let a = parseInt(match[1]);
+        let pasos = [];
+        
+        pasos.push(`🔍 Denominador con raíz repetida: (x${a >= 0 ? '+' : ''}${a})²`);
+        pasos.push(`📝 Planteamos: ${numerador}/(x${a >= 0 ? '+' : ''}${a})² = A/(x${a >= 0 ? '+' : ''}${a}) + B/(x${a >= 0 ? '+' : ''}${a})²`);
+        pasos.push(``);
+        pasos.push(`🔄 Multiplicamos por (x${a >= 0 ? '+' : ''}${a})²:`);
+        pasos.push(`   ${numerador} = A(x${a >= 0 ? '+' : ''}${a}) + B`);
+        
+        let coefs = extraerCoeficientes(numerador);
+        if (!coefs) return null;
+        
+        let coefX = coefs.a;
+        let constTerm = coefs.b;
+        
+        let A_val = coefX;
+        let B_val = coefX * (-a) + constTerm;
+        
+        let A_str = formatoFraccion(A_val, 1);
+        let B_str = formatoFraccion(B_val, 1);
+        
+        pasos.push(``);
+        pasos.push(`📐 Resolvemos:`);
+        pasos.push(`   A = ${A_str}`);
+        pasos.push(`   B = ${B_str}`);
+        pasos.push(``);
+        
+        if (A_str !== "0" && B_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/(x${a >= 0 ? '+' : ''}${a})² = ${A_str}/(x${a >= 0 ? '+' : ''}${a}) + ${B_str}/(x${a >= 0 ? '+' : ''}${a})²`);
+        } else if (A_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/(x${a >= 0 ? '+' : ''}${a})² = ${A_str}/(x${a >= 0 ? '+' : ''}${a})`);
+        } else if (B_str !== "0") {
+            pasos.push(`✅ Descomposición: ${numerador}/(x${a >= 0 ? '+' : ''}${a})² = ${B_str}/(x${a >= 0 ? '+' : ''}${a})²`);
+        }
+        
+        pasos.push(``);
+        pasos.push(`🧮 INTEGRAMOS:`);
+        
+        let resultado = "";
+        if (A_str !== "0") {
+            let intA = A_str === "1" ? "" : (A_str === "-1" ? "-" : A_str);
+            pasos.push(`   ∫ ${A_str} dx/(x${a >= 0 ? '+' : ''}${a}) = ${A_str}·ln|x${a >= 0 ? '+' : ''}${a}|`);
+            resultado += `${intA}ln|x${a >= 0 ? '+' : ''}${a}|`;
+        }
+        if (B_str !== "0") {
+            let intB = Math.abs(B_val);
+            let signo = B_val > 0 ? " + " : " - ";
+            if (!resultado && B_val < 0) signo = "-";
+            if (resultado) resultado += signo;
+            else if (B_val < 0) resultado += `-${intB}·(1/(x${a >= 0 ? '+' : ''}${a}))`;
+            else resultado += `${intB}·(1/(x${a >= 0 ? '+' : ''}${a}))`;
+            pasos.push(`   ∫ ${B_str} dx/(x${a >= 0 ? '+' : ''}${a})² = ${B_str}·(-1/(x${a >= 0 ? '+' : ''}${a}))`);
+        }
+        
+        pasos.push(``);
+        pasos.push(`✨✨ RESULTADO FINAL: ∫ ${numerador}/[${denStr}] dx = ${resultado} + C ✨✨`);
+        
+        return { pasos, resultado, exito: true };
+    }
+    
+    // ========== CASO: Logaritmo directo (derivada del denominador) ==========
+    function casoLogDirecto(numerador, denominador) {
+        let numSimp = numerador.replace(/\s/g, '');
+        let denSimp = denominador.replace(/\s/g, '');
+        
+        if ((denSimp === '(x+1)(x+2)' || denSimp === '(x+2)(x+1)') && numSimp === '2x+3') {
+            let pasos = [];
+            pasos.push(`🔍 Observamos que el numerador es la derivada del denominador:`);
+            pasos.push(`   d/dx[(x+1)(x+2)] = d/dx[x²+3x+2] = 2x+3`);
+            pasos.push(``);
+            pasos.push(`📝 Integral tipo ∫ f'(x)/f(x) dx = ln|f(x)| + C`);
+            pasos.push(``);
+            pasos.push(`✨✨ RESULTADO FINAL: ∫ (${numerador})/[${denominador}] dx = ln|(x+1)(x+2)| + C ✨✨`);
+            return { pasos, resultado: `ln|(x+1)(x+2)|`, exito: true };
+        }
+        return null;
+    }
+    
+    function resolverFraccionesParciales(numerador, denominador) {
+        let logDirecto = casoLogDirecto(numerador, denominador);
+        if (logDirecto) return logDirecto;
+        
+        let repetida = casoRaizRepetida(numerador, denominador);
+        if (repetida) return repetida;
+        
+        let lineales = descomponerLineales(numerador, denominador);
+        if (lineales) return lineales;
+        
+        let pasos = [];
+        pasos.push(`❌ No se pudo descomponer en fracciones parciales para:`);
+        pasos.push(`   ∫ ${numerador} / [${denominador}] dx`);
+        pasos.push(``);
+        pasos.push(`💡 Formatos soportados:`);
+        pasos.push(`   • Factores lineales: (x+1)(x+2), (x-1)(x+3)`);
+        pasos.push(`   • Raíz repetida: (x+1)², (x-2)²`);
+        pasos.push(`   • Numerador: constante o lineal (ax+b)`);
+        return { pasos, exito: false };
+    }
+    
+    function renderizarResultado(numerador, denominador, resultado) {
+        const container = document.getElementById('resultado');
+        if (!resultado.exito) {
+            container.innerHTML = `<div style="color:#f66;">⚠️ ${resultado.pasos.join("<br>")}</div>`;
+            return;
+        }
+        
+        let html = `<div style="margin-bottom: 1rem; padding: 0.8rem; border-radius: 1rem; border: 1px solid cyan;">
+                        📌 <strong>Función original:</strong> ∫ ${numerador} / [${denominador}] dx
+                    </div>`;
+        html += `<div><strong>🔍 FRACCIONES PARCIALES - DESCOMPOSICIÓN:</strong></div>`;
+        
+        for (let i = 0; i < resultado.pasos.length; i++) {
+            let paso = resultado.pasos[i];
+            if (paso.includes("📝") || paso.includes("✅") || paso.includes("🔄") || paso.includes("📐")) {
+                html += `<div class="fraction-box">${paso}</div>`;
+            } else {
+                html += `<div class="paso">${paso}</div>`;
+            }
+        }
+        
+        html += `<div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid cyan;">
+                    🧨 <strong>INTEGRAL RESUELTA:</strong> ${resultado.resultado} + C 🧨
+                 </div>`;
+        
+        container.innerHTML = html;
+    }
+    
+    // Eventos
+    document.getElementById('integrarBtn').addEventListener('click', () => {
+        let numerador = document.getElementById('numeradorInput').value.trim();
+        let denominador = document.getElementById('denominadorInput').value.trim();
+        
+        if (!numerador || !denominador) {
+            document.getElementById('resultado').innerHTML = `<div style="color:#f66;">✍️ Escribe numerador y denominador, carnal.</div>`;
+            return;
+        }
+        
+        let resultado = resolverFraccionesParciales(numerador, denominador);
+        renderizarResultado(numerador, denominador, resultado);
+    });
+    
+    document.querySelectorAll('.ejemplo').forEach(btn => {
+        btn.addEventListener('click', () => {
+            let num = btn.getAttribute('data-num');
+            let den = btn.getAttribute('data-den');
+            document.getElementById('numeradorInput').value = num;
+            document.getElementById('denominadorInput').value = den;
+            let resultado = resolverFraccionesParciales(num, den);
+            renderizarResultado(num, den, resultado);
+        });
+    });
+    
+    window.addEventListener('load', () => {
+        let num = document.getElementById('numeradorInput').value;
+        let den = document.getElementById('denominadorInput').value;
+        let resultado = resolverFraccionesParciales(num, den);
+        renderizarResultado(num, den, resultado);
+    });
+</script>
+</body>
+</html>
